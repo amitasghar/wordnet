@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Category Challenge - Word Game</title>
+  
+  <!-- Import Maps for ES6 Module Support -->
+  <script type="importmap">
+    {
+      "imports": {
+        "phaser": "/node_modules/phaser/dist/phaser.esm.js",
+        "@/": "/src/",
+        "@config/": "/src/config/",
+        "@scenes/": "/src/scenes/",
+        "@utils/": "/src/utils/"
+      }
+    }
+  </script>
+  
+  <!-- TailwindCSS for UI elements outside canvas -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'game-primary': '#4F46E5',
+            'game-secondary': '#7C3AED',
+            'game-accent': '#F59E0B',
+            'game-success': '#10B981',
+            'game-warning': '#EF4444'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-900 text-white font-sans overflow-hidden">
+  <!-- Game UI Container -->
+  <div id="ui-container" class="fixed top-0 left-0 w-full h-full pointer-events-none z-10">
+    <!-- Overlay container -->
+    <div id="overlay-container" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
+    
+    <!-- Notification container -->
+    <div id="notification-container" class="absolute top-4 right-4 z-50 pointer-events-none"></div>
+    
+    <!-- HUD elements -->
+    <div id="hud-container" class="absolute top-0 left-0 w-full h-full pointer-events-none">
+      <!-- Score display -->
+      <div id="hud-score" class="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-3 py-2 rounded-lg font-bold text-lg pointer-events-none">
+        Score: <span id="score-value">0</span>
+      </div>
+      
+      <!-- Timer display -->
+      <div id="hud-timer" class="absolute top-4 right-20 bg-black bg-opacity-50 text-white px-3 py-2 rounded-lg font-bold text-lg pointer-events-none">
+        Time: <span id="timer-value">90</span>
+      </div>
+    </div>
+    
+    <!-- Loading screen -->
+    <div id="loading-screen" class="absolute inset-0 bg-gray-900 flex items-center justify-center z-50">
+      <div class="text-center text-white">
+        <div class="text-4xl font-bold mb-4">Category Challenge</div>
+        <div class="text-lg mb-8">Loading game...</div>
+        <div class="w-64 h-2 bg-gray-700 rounded-full mx-auto">
+          <div id="loading-bar" class="h-full bg-blue-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div id="loading-text" class="mt-4 text-sm text-gray-400">Initializing...</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Game Canvas Container -->
+  <div id="game-container" class="w-full h-screen flex items-center justify-center bg-gray-900">
+    <!-- Phaser game will be mounted here -->
+  </div>
+  
+  <!-- Game initialization script -->
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(tree:*)",
+      "Bash(git init:*)",
+      "Bash(dir)",
+      "Bash(git --version)",
+      "Bash(dir:*)",
+      "Bash(git config:*)",
+      "Bash(test:*)",
+      "Bash(npm install)",
+      "Bash(npm test)",
+      "Bash(npm run build:*)",
+      "Bash(git branch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(node:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(npm:*)",
+      "Bash(./node_modules/.bin/vitest run --reporter=verbose)",
+      "Bash(echo $PATH)",
+      "Bash(where node)",
+      "Bash(echo $PWD)",
+      "Bash(gh repo create:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh repo view:*)",
+      "Bash(powershell:*)",
+      "Bash(git remote add:*)",
+      "Bash(where git)",
+      "Bash(gh auth:*)",
+      "Bash(git remote get-url:*)",
+      "Bash(gh repo list:*)",
+      "Bash(cd:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

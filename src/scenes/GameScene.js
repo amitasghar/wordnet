@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { devLogger } from '@/utils/devTools.js'
 import { TimerManager } from '@/managers/TimerManager.js'
+import { VisualFeedbackManager } from '@/managers/VisualFeedbackManager.js'
 
 export class GameScene extends Phaser.Scene {
   constructor () {
@@ -17,6 +18,9 @@ export class GameScene extends Phaser.Scene {
     this.timerManager = null
     this.lastTimerUpdate = ''
     this.warningLevel = 'normal'
+    
+    // Visual feedback state - will be managed by VisualFeedbackManager
+    this.visualFeedbackManager = null
   }
   
   create () {
@@ -35,6 +39,9 @@ export class GameScene extends Phaser.Scene {
       this.timerManager = new TimerManager()
     }
     
+    // Initialize VisualFeedbackManager
+    this.visualFeedbackManager = new VisualFeedbackManager(this)
+    
     // Initialize game components
     this.createBackground()
     this.createUI()
@@ -42,6 +49,9 @@ export class GameScene extends Phaser.Scene {
     this.createInputSystem()
     this.setupGameLogic()
     this.setupTimerEventListeners()
+    
+    // Initialize visual feedback system
+    this.visualFeedbackManager.init()
     
     // Start the game
     this.startRound()
@@ -342,25 +352,33 @@ export class GameScene extends Phaser.Scene {
   createInputSystem () {
     const { width, height } = this.cameras.main
     
-    // Input background
-    this.inputBg = this.add.rectangle(width / 2, height / 2 + 50, 400, 60, 0x374151)
+    // Get responsive dimensions - will be properly calculated once VisualFeedbackManager is initialized
+    const inputWidth = Math.min(400, width * 0.8)
+    const inputHeight = width <= 480 ? 50 : 60 // Smaller height on mobile
+    
+    // Input background with responsive sizing
+    this.inputBg = this.add.rectangle(width / 2, height / 2 + 50, inputWidth, inputHeight, 0x374151)
+    
+    // Responsive font size
+    const fontSize = width <= 480 ? '18px' : '20px'
     
     // Input placeholder text
     this.inputPlaceholder = this.add.text(width / 2, height / 2 + 50, 'Type your word here...', {
-      fontSize: '20px',
+      fontSize: fontSize,
       fill: '#6b7280',
       fontFamily: 'Arial'
     }).setOrigin(0.5)
     
     // Current input text
     this.inputText = this.add.text(width / 2, height / 2 + 50, '', {
-      fontSize: '20px',
+      fontSize: fontSize,
       fill: '#ffffff',
       fontFamily: 'Arial'
     }).setOrigin(0.5)
     
-    // Input cursor
-    this.inputCursor = this.add.rectangle(width / 2 + 10, height / 2 + 50, 2, 30, 0xffffff)
+    // Input cursor with responsive height
+    const cursorHeight = width <= 480 ? 25 : 30
+    this.inputCursor = this.add.rectangle(width / 2 + 10, height / 2 + 50, 2, cursorHeight, 0xffffff)
     this.inputCursor.setVisible(false)
     
     // Current word being typed
@@ -483,8 +501,11 @@ export class GameScene extends Phaser.Scene {
       this.currentInput = this.currentInput.slice(0, -1)
       this.updateInputDisplay()
     } else if (key.length === 1 && /[a-zA-Z]/.test(key)) {
-      this.currentInput += key.toLowerCase()
-      this.updateInputDisplay()
+      // Check character limit before adding
+      if (this.currentInput.length < (this.visualFeedbackManager?.max_length || 20)) {
+        this.currentInput += key.toLowerCase()
+        this.updateInputDisplay()
+      }
     }
   }
   
@@ -492,11 +513,20 @@ export class GameScene extends Phaser.Scene {
     if (this.currentInput.length === 0) {
       this.inputText.setVisible(false)
       this.inputPlaceholder.setVisible(true)
+      // Stop typing animation when no input
+      this.visualFeedbackManager?.stop_typing_animation()
     } else {
       this.inputText.setText(this.currentInput)
       this.inputText.setVisible(true)
       this.inputPlaceholder.setVisible(false)
+      // Start typing animation when input begins
+      if (!this.visualFeedbackManager?.cursor_animation_active) {
+        this.visualFeedbackManager?.start_typing_animation()
+      }
     }
+    
+    // Update visual feedback manager with character count
+    this.visualFeedbackManager?.update_character_count(this.currentInput)
     
     // Update cursor position
     const textWidth = this.inputText.width
@@ -564,24 +594,54 @@ export class GameScene extends Phaser.Scene {
   }
   
   showFeedback (text, color) {
-    const { width, height } = this.cameras.main
-    
-    const feedback = this.add.text(width / 2, height / 2 + 120, text, {
-      fontSize: '18px',
-      fill: Phaser.Display.Color.IntegerToColor(color).rgba,
-      fontFamily: 'Arial'
-    }).setOrigin(0.5)
-    
-    // Fade out animation
-    this.tweens.add({
-      targets: feedback,
-      alpha: 0,
-      y: feedback.y - 30,
-      duration: 1500,
-      onComplete: () => {
-        feedback.destroy()
+    // Use VisualFeedbackManager for enhanced feedback
+    if (this.visualFeedbackManager) {
+      if (color === 0x10b981) { // Green success color
+        this.visualFeedbackManager.show_success_feedback(text)
+      } else if (color === 0xef4444) { // Red error color  
+        this.visualFeedbackManager.show_error_feedback(text)
+      } else {
+        // Fallback to old system for other colors
+        const { width, height } = this.cameras.main
+        
+        const feedback = this.add.text(width / 2, height / 2 + 120, text, {
+          fontSize: '18px',
+          fill: Phaser.Display.Color.IntegerToColor(color).rgba,
+          fontFamily: 'Arial'
+        }).setOrigin(0.5)
+        
+        // Fade out animation
+        this.tweens.add({
+          targets: feedback,
+          alpha: 0,
+          y: feedback.y - 30,
+          duration: 1500,
+          onComplete: () => {
+            feedback.destroy()
+          }
+        })
       }
-    })
+    } else {
+      // Fallback to original implementation
+      const { width, height } = this.cameras.main
+      
+      const feedback = this.add.text(width / 2, height / 2 + 120, text, {
+        fontSize: '18px',
+        fill: Phaser.Display.Color.IntegerToColor(color).rgba,
+        fontFamily: 'Arial'
+      }).setOrigin(0.5)
+      
+      // Fade out animation
+      this.tweens.add({
+        targets: feedback,
+        alpha: 0,
+        y: feedback.y - 30,
+        duration: 1500,
+        onComplete: () => {
+          feedback.destroy()
+        }
+      })
+    }
   }
   
   updateTimer () {
@@ -710,8 +770,31 @@ export class GameScene extends Phaser.Scene {
     })
   }
   
-  update () {
-    // Game loop update
-    // Most game logic is handled by events, but this can be used for continuous updates
+  update (time, deltaTime) {
+    // Game loop update - integrate with VisualFeedbackManager for 60 FPS performance
+    if (this.visualFeedbackManager) {
+      this.visualFeedbackManager.update(deltaTime)
+    }
+    
+    // Most other game logic is handled by events, but this is used for continuous updates
+  }
+  
+  /**
+   * Clean up scene resources
+   */
+  destroy () {
+    // Cleanup visual feedback manager
+    if (this.visualFeedbackManager) {
+      this.visualFeedbackManager.destroy()
+      this.visualFeedbackManager = null
+    }
+    
+    // Cleanup timer manager
+    if (this.timerManager) {
+      this.timerManager.destroy?.()
+      this.timerManager = null
+    }
+    
+    devLogger.scene('GameScene destroyed')
   }
 }

@@ -90,6 +90,7 @@ vi.mock('../src/utils/devTools.js', () => ({
     error: vi.fn(),
     warn: vi.fn(),
     info: vi.fn(),
+    input: vi.fn(),
   },
   DevTools: vi.fn().mockImplementation(() => ({})),
   hotReload: {

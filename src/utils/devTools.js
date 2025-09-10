@@ -173,6 +173,10 @@ export const devLogger = {
     this.log('MANAGER', message, data)
   },
   
+  input (message, data) {
+    this.log('INPUT', message, data)
+  },
+  
   error (message, error) {
     if (__DEV__) {
       const timestamp = new Date().toLocaleTimeString()

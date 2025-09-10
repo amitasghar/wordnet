@@ -94,6 +94,16 @@ export class GameStateManager {
   getStateHistory () {
     return [...this.stateHistory]
   }
+
+  // Get current round configuration
+  get roundConfig () {
+    return this.currentRound || { timeLimit: 90 }
+  }
+
+  // Get current round information
+  getCurrentRound () {
+    return this.currentRound
+  }
   
   // Set new game state
   setState (newState, data = null) {

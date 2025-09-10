@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { devLogger } from '@/utils/devTools.js'
+import { TimerManager } from '@/managers/TimerManager.js'
 
 export class GameScene extends Phaser.Scene {
   constructor () {
@@ -8,10 +9,14 @@ export class GameScene extends Phaser.Scene {
     // Game state
     this.currentCategory = null
     this.currentCategoryId = null
-    this.timeRemaining = 90
     this.score = 0
     this.wordsEntered = []
     this.isGameActive = false
+    
+    // Timer state - will be managed by TimerManager
+    this.timerManager = null
+    this.lastTimerUpdate = ''
+    this.warningLevel = 'normal'
   }
   
   create () {
@@ -19,11 +24,24 @@ export class GameScene extends Phaser.Scene {
     
     const { width, height } = this.cameras.main
     
+    // Initialize TimerManager - get managers from global game instance
+    if (window.gameInstance) {
+      this.timerManager = new TimerManager(
+        window.gameInstance.loopManager,
+        window.gameInstance.stateManager
+      )
+    } else {
+      // Fallback for testing
+      this.timerManager = new TimerManager()
+    }
+    
     // Initialize game components
     this.createBackground()
     this.createUI()
+    this.createEnhancedTimerDisplay()
     this.createInputSystem()
     this.setupGameLogic()
+    this.setupTimerEventListeners()
     
     // Start the game
     this.startRound()
@@ -65,20 +83,7 @@ export class GameScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5)
     
-    // Timer display
-    this.timerText = this.add.text(width - 50, 50, '90', {
-      fontSize: '48px',
-      fill: '#f59e0b',
-      fontFamily: 'Arial',
-      fontStyle: 'bold'
-    }).setOrigin(0.5)
-    
-    // Timer label
-    this.add.text(width - 50, 90, 'TIME', {
-      fontSize: '16px',
-      fill: '#6b7280',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5)
+    // Timer display will be created by createEnhancedTimerDisplay()
     
     // Score display
     this.scoreText = this.add.text(50, 50, '0', {
@@ -154,6 +159,185 @@ export class GameScene extends Phaser.Scene {
       wordWrap: { width: 220 }
     }).setOrigin(0.5, 0)
   }
+
+  /**
+   * Create enhanced timer display with progress indicator and improved visual feedback
+   */
+  createEnhancedTimerDisplay () {
+    const { width, height } = this.cameras.main
+    
+    // Timer container position (top-right)
+    const timerX = width - 80
+    const timerY = 60
+    
+    // Timer text display
+    this.timerText = this.add.text(timerX, timerY - 10, '01:30', {
+      fontSize: '24px',
+      fill: '#4ade80', // Green by default
+      fontFamily: 'Arial',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5)
+    
+    // Circular progress indicator
+    this.timerProgress = this.add.graphics()
+    
+    // Timer background circle (static)
+    this.timerBg = this.add.graphics()
+    this.timerBg.lineStyle(4, 0x374151, 0.3)
+    this.timerBg.strokeCircle(timerX, timerY - 10, 35)
+    
+    // Timer label
+    this.timerLabel = this.add.text(timerX, timerY + 25, 'TIME', {
+      fontSize: '12px',
+      fill: '#9ca3af',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    }).setOrigin(0.5)
+    
+    // Initialize with current timer state
+    this.updateTimerDisplay()
+    
+    devLogger.scene('Enhanced timer display created')
+  }
+
+  /**
+   * Update timer display with current values and visual feedback
+   */
+  updateTimerDisplay () {
+    if (!this.timerManager || !this.timerText || !this.timerProgress) return
+    
+    const formattedTime = this.timerManager.getFormattedTime()
+    const progress = this.timerManager.getProgress()
+    const timeRemaining = this.timerManager.timeRemaining
+    
+    // Only update if values have changed (performance optimization)
+    if (formattedTime !== this.lastTimerUpdate) {
+      this.timerText.setText(formattedTime)
+      this.lastTimerUpdate = formattedTime
+    }
+    
+    // Update progress circle
+    this.updateProgressCircle(progress)
+    
+    // Update color based on time remaining
+    this.updateTimerColors(timeRemaining, progress)
+    
+    // Handle critical time animations
+    if (timeRemaining <= 10 && this.warningLevel !== 'critical') {
+      this.triggerCriticalAnimation()
+      this.warningLevel = 'critical'
+    } else if (timeRemaining <= 30 && timeRemaining > 10 && this.warningLevel === 'normal') {
+      this.warningLevel = 'warning'
+    }
+  }
+
+  /**
+   * Update the circular progress indicator
+   */
+  updateProgressCircle (progress) {
+    const { width } = this.cameras.main
+    const timerX = width - 80
+    const timerY = 60 - 10
+    const radius = 35
+    
+    this.timerProgress.clear()
+    
+    if (progress > 0) {
+      // Calculate angle for progress (start at top, go clockwise)
+      const startAngle = -Math.PI / 2
+      const endAngle = startAngle + (2 * Math.PI * (progress / 100))
+      
+      // Choose color based on progress
+      let progressColor = 0x4ade80 // Green
+      if (progress < 33) {
+        progressColor = 0xef4444 // Red
+      } else if (progress < 66) {
+        progressColor = 0xf59e0b // Yellow
+      }
+      
+      this.timerProgress.lineStyle(4, progressColor)
+      this.timerProgress.beginPath()
+      this.timerProgress.arc(timerX, timerY, radius, startAngle, endAngle)
+      this.timerProgress.strokePath()
+    }
+  }
+
+  /**
+   * Update timer text colors based on time remaining
+   */
+  updateTimerColors (timeRemaining, progress) {
+    let textColor = '#4ade80' // Green
+    
+    if (timeRemaining <= 10) {
+      textColor = '#ef4444' // Red
+    } else if (timeRemaining <= 30) {
+      textColor = '#f59e0b' // Yellow
+    }
+    
+    this.timerText.setColor(textColor)
+  }
+
+  /**
+   * Trigger pulsing animation for critical time periods
+   */
+  triggerCriticalAnimation () {
+    this.tweens.add({
+      targets: [this.timerText, this.timerProgress],
+      scaleX: 1.15,
+      scaleY: 1.15,
+      duration: 300,
+      ease: 'Power2',
+      yoyo: true,
+      repeat: 2
+    })
+  }
+
+  /**
+   * Setup event listeners for timer events
+   */
+  setupTimerEventListeners () {
+    if (!this.timerManager) return
+    
+    // Listen for timer warnings
+    this.timerManager.on = (event, callback) => {
+      this.events.on(event, callback)
+    }
+    
+    // Timer warning handler
+    this.events.on('timer:warning', (data) => {
+      this.showTimerWarning(data.warningLevel, data.timeRemaining)
+    })
+    
+    // Timer critical handler
+    this.events.on('timer:critical', (data) => {
+      this.showTimerWarning('critical', data.timeRemaining)
+    })
+    
+    // Timer expired handler  
+    this.events.on('timer:expired', () => {
+      this.endGame()
+    })
+    
+    devLogger.scene('Timer event listeners setup complete')
+  }
+
+  /**
+   * Show visual warning for timer alerts
+   */
+  showTimerWarning (level, timeRemaining) {
+    // Flash the timer display
+    this.tweens.add({
+      targets: this.timerText,
+      alpha: 0.3,
+      duration: 200,
+      yoyo: true,
+      repeat: 1
+    })
+    
+    devLogger.scene(`Timer warning: ${level} - ${timeRemaining}s remaining`)
+  }
   
   createInputSystem () {
     const { width, height } = this.cameras.main
@@ -187,9 +371,9 @@ export class GameScene extends Phaser.Scene {
     // Keyboard input handling
     this.input.keyboard.on('keydown', this.handleKeyInput, this)
     
-    // Game timer
+    // Game timer for UI updates (TimerManager handles actual timing)
     this.gameTimer = this.time.addEvent({
-      delay: 1000,
+      delay: 100, // Update UI more frequently for smooth animations
       callback: this.updateTimer,
       callbackScope: this,
       loop: true
@@ -211,11 +395,16 @@ export class GameScene extends Phaser.Scene {
     devLogger.scene('GameScene: Starting new round')
     
     // Reset game state
-    this.timeRemaining = 90
     this.score = 0
     this.wordsEntered = []
     this.isGameActive = true
     this.currentInput = ''
+    this.warningLevel = 'normal'
+    
+    // Start the timer with 90 seconds
+    if (this.timerManager) {
+      this.timerManager.start(90)
+    }
     
     // Get random category
     this.selectRandomCategory()
@@ -398,33 +587,16 @@ export class GameScene extends Phaser.Scene {
   updateTimer () {
     if (!this.isGameActive) return
     
-    this.timeRemaining--
+    // Update the enhanced timer display
+    this.updateTimerDisplay()
     
-    if (this.timeRemaining <= 0) {
-      this.endGame()
-    } else {
-      this.updateUI()
-      
-      // Warning color when time is low
-      if (this.timeRemaining <= 10) {
-        this.timerText.setColor('#ef4444')
-        
-        // Pulse animation
-        this.tweens.add({
-          targets: this.timerText,
-          scaleX: 1.2,
-          scaleY: 1.2,
-          duration: 200,
-          yoyo: true
-        })
-      }
-    }
+    // Update other UI elements
+    this.updateUI()
   }
   
   updateUI () {
     // Update displays
     this.categoryText.setText(`Category: ${this.currentCategory}`)
-    this.timerText.setText(this.timeRemaining.toString())
     this.scoreText.setText(this.score.toString())
     
     // Update HTML HUD elements if available
@@ -435,8 +607,8 @@ export class GameScene extends Phaser.Scene {
       scoreElement.textContent = this.score.toString()
     }
     
-    if (timerElement) {
-      timerElement.textContent = this.timeRemaining.toString()
+    if (timerElement && this.timerManager) {
+      timerElement.textContent = this.timerManager.getFormattedTime()
     }
     
     // Update words list
@@ -456,7 +628,16 @@ export class GameScene extends Phaser.Scene {
     
     this.isGameActive = false
     this.inputCursor.setVisible(false)
-    this.gameTimer.paused = true
+    
+    // Stop the timer
+    if (this.timerManager) {
+      this.timerManager.stop()
+    }
+    
+    // Pause the old game timer if it exists
+    if (this.gameTimer) {
+      this.gameTimer.paused = true
+    }
     
     // Show game over screen
     this.showGameOverScreen()

@@ -1,16 +1,19 @@
 # Technical Stack
 
 ## Application Framework
-- **Framework:** Phaser.js 3.80+
+- **Framework:** Phaser.js 3.80.0
 - **Purpose:** 2D game development framework for HTML5 games
+- **Architecture:** Manager-based modular system with 8+ core managers
 
 ## Database System
-- **Primary:** LocalStorage
-- **Secondary:** IndexedDB (for complex game data)
+- **Primary:** LocalStorage with graceful fallback
+- **Secondary:** IndexedDB for complex game data
+- **Features:** Unified storage interface with error recovery
 
 ## JavaScript Framework
 - **Runtime:** Vanilla JavaScript (ES6+)
-- **Module System:** ES6 Modules
+- **Module System:** ES6 Modules with import maps
+- **Patterns:** Manager pattern, Observer pattern, Error tracking
 
 ## Import Strategy
 - **Type:** importmaps
@@ -53,7 +56,14 @@
 - **Platform:** GitHub
 - **URL:** To be determined
 
+## Testing & Quality
+- **Testing Framework:** Vitest with jsdom
+- **Test Coverage:** 93+ tests across 13 test suites 
+- **Linting:** ESLint with Standard configuration
+- **Development Tools:** Hot reload, debugging support, error tracking
+
 ## Additional Development Tools
 - **Package Manager:** npm
-- **Code Style:** 2-space indentation, snake_case variables, single quotes
+- **Code Style:** 2-space indentation, camelCase variables, single quotes
 - **Development Server:** Vite dev server with hot reload
+- **Build Tool:** Vite 5.0 with modern ES6+ output

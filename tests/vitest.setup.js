@@ -77,3 +77,29 @@ global.indexedDB = {
   deleteDatabase: vi.fn(),
   cmp: vi.fn()
 }
+
+// Mock development tools for testing
+vi.mock('../src/utils/devTools.js', () => ({
+  devLogger: {
+    log: vi.fn(),
+    scene: vi.fn(),
+    game: vi.fn(),
+    asset: vi.fn(),
+    storage: vi.fn(),
+    manager: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    input: vi.fn(),
+  },
+  DevTools: vi.fn().mockImplementation(() => ({})),
+  hotReload: {
+    modules: new Map(),
+    register: vi.fn(),
+    update: vi.fn()
+  }
+}))
+
+// Mock global __DEV__ flag
+global.__DEV__ = true
+

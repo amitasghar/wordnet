@@ -9,6 +9,7 @@ import { AssetManager } from '@/managers/AssetManager.js'
 import { StorageManager } from '@/managers/StorageManager.js'
 import { WordDataManager } from '@/managers/WordDataManager.js'
 import { UIManager } from '@/managers/UIManager.js'
+import { TimerManager } from '@/managers/TimerManager.js'
 import { ResponsiveCanvas } from '@/utils/ResponsiveCanvas.js'
 import { EventBridge } from '@/utils/EventBridge.js'
 
@@ -31,6 +32,7 @@ class CategoryChallengeGame {
     this.storageManager = null
     this.wordDataManager = null
     this.uiManager = null
+    this.timerManager = null
     this.responsiveCanvas = null
     this.eventBridge = null
     this.initialized = false
@@ -61,6 +63,9 @@ class CategoryChallengeGame {
       // Initialize UI and responsive systems
       this.uiManager = new UIManager(this.game)
       this.responsiveCanvas = new ResponsiveCanvas(this.game)
+      
+      // Initialize timer manager
+      this.timerManager = new TimerManager(this.loopManager, this.stateManager)
       
       // Initialize development tools
       if (__DEV__) {
@@ -112,6 +117,11 @@ class CategoryChallengeGame {
     if (this.uiManager) {
       this.uiManager.destroy()
       this.uiManager = null
+    }
+    
+    if (this.timerManager) {
+      this.timerManager.destroy()
+      this.timerManager = null
     }
     
     if (this.assetManager) {
@@ -190,6 +200,7 @@ async function initGame () {
       window.storageManager = gameInstance.storageManager
       window.wordDataManager = gameInstance.wordDataManager
       window.uiManager = gameInstance.uiManager
+      window.timerManager = gameInstance.timerManager
       window.responsiveCanvas = gameInstance.responsiveCanvas
       window.eventBridge = gameInstance.eventBridge
       window.gameInstance = gameInstance

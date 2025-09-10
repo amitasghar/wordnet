@@ -167,5 +167,33 @@ export const devLogger = {
   
   storage (message, data) {
     this.log('STORAGE', message, data)
+  },
+  
+  manager (message, data) {
+    this.log('MANAGER', message, data)
+  },
+  
+  input (message, data) {
+    this.log('INPUT', message, data)
+  },
+  
+  error (message, error) {
+    if (__DEV__) {
+      const timestamp = new Date().toLocaleTimeString()
+      const prefix = `[${timestamp}] [ERROR]`
+      console.error(prefix, message, error)
+    }
+  },
+  
+  warn (message, data) {
+    if (__DEV__) {
+      const timestamp = new Date().toLocaleTimeString()
+      const prefix = `[${timestamp}] [WARN]`
+      if (data) {
+        console.warn(prefix, message, data)
+      } else {
+        console.warn(prefix, message)
+      }
+    }
   }
 }

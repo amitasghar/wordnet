@@ -35,7 +35,8 @@
       "Bash(git remote get-url:*)",
       "Bash(gh repo list:*)",
       "Bash(cd:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": [],
     "ask": []
